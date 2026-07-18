@@ -155,30 +155,29 @@ export default function CaseView({
 
   const metaLine = (
     <header className="flex items-start justify-between gap-4">
-      <div>
-        <h1 className="text-[17px] font-semibold tracking-tight">{c.merchant_name}</h1>
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <span className="rounded border border-line bg-panel px-1.5 py-0.5 font-mono text-[11px] text-muted">
-            {c.case_id}
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <h1 className="text-[16px] font-semibold tracking-tight">{c.merchant_name}</h1>
+          <span className="font-mono text-[11.5px] text-muted">{c.case_id}</span>
+          <span className="text-muted">·</span>
+          <span className="text-[13.5px] font-semibold">{fmtAmount(c.amount, c.currency)}</span>
+          <span className="text-muted">·</span>
+          <span className="text-[12.5px] text-muted">
+            <span className="font-semibold uppercase">{c.scheme} {c.reason_code}</span>
+            {c.reason_code_label ? ` ${c.reason_code_label}` : ""}
           </span>
-          <span className="text-[13px] font-semibold text-foreground/90">
-            {fmtAmount(c.amount, c.currency)}
-          </span>
-          <span className="rounded border border-line px-1.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted">
-            {c.scheme} {c.reason_code}
-          </span>
-          {c.reason_code_label && (
-            <span className="text-[12px] text-muted">{c.reason_code_label}</span>
-          )}
           {txnDate && cbDate && (
-            <span className="text-[12px] text-muted">
-              · paid {txnDate} → disputed {cbDate}
-              {daysBetween !== null ? ` (${daysBetween} days)` : ""}
-            </span>
+            <>
+              <span className="text-muted">·</span>
+              <span className="text-[12.5px] text-muted">
+                paid {txnDate} → disputed {cbDate}
+                {daysBetween !== null ? ` (${daysBetween}d)` : ""}
+              </span>
+            </>
           )}
         </div>
         {c.issuer_narrative && (
-          <p className="mt-2 max-w-5xl border-l-2 border-line pl-3 text-[13px] leading-relaxed text-foreground/85">
+          <p className="mt-1.5 max-w-5xl border-l-2 border-line pl-3 text-[13px] leading-relaxed text-foreground/85">
             <span className="font-semibold text-muted">Issuer claims: </span>
             {c.issuer_narrative}
           </p>
