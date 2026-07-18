@@ -324,28 +324,6 @@ export default function CaseView({
     );
   };
 
-  const crossCutting = (ww: Workup) =>
-    ww.flags.length || ww.evidence_requests.length ? (
-      <div className="space-y-1 text-[12.5px] leading-relaxed">
-        {ww.flags.map((f, i) => (
-          <div key={`f${i}`} className="flex gap-1.5">
-            <span className="shrink-0 font-semibold" style={{ color: "var(--amber)" }}>
-              ⚠ Verify:
-            </span>
-            <span className="text-foreground/80">{f}</span>
-          </div>
-        ))}
-        {ww.evidence_requests.map((f, i) => (
-          <div key={`r${i}`} className="flex gap-1.5">
-            <span className="shrink-0 font-semibold" style={{ color: "#60a5fa" }}>
-              → Ask merchant:
-            </span>
-            <span className="text-foreground/80">{f}</span>
-          </div>
-        ))}
-      </div>
-    ) : null;
-
   const rationaleArea = (ww: Workup, rows: number) =>
     editingRationale ? (
       <div>
@@ -485,7 +463,6 @@ export default function CaseView({
           {w.reason_code_summary}
         </div>
       )}
-      {crossCutting(w) && <div className="mt-2">{crossCutting(w)}</div>}
       <div className="mt-3">{decisionCard(w, rationaleRows)}</div>
       <div className="mt-4">
         <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
