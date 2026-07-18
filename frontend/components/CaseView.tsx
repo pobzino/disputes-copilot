@@ -136,6 +136,23 @@ export default function CaseView({
     }
   };
 
+  const fmtDate = (s: unknown) => {
+    if (typeof s !== "string") return null;
+    const d = new Date(s);
+    return isNaN(+d)
+      ? null
+      : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  const txnDate = fmtDate(c.transaction_metadata["transaction_date"]);
+  const cbDate = fmtDate(c.transaction_metadata["chargeback_date"]);
+  const daysBetween = (() => {
+    const a = new Date(String(c.transaction_metadata["transaction_date"] ?? ""));
+    const b = new Date(String(c.transaction_metadata["chargeback_date"] ?? ""));
+    if (isNaN(+a) || isNaN(+b)) return null;
+    return Math.round((+b - +a) / 86400000);
+  })();
+
   const metaLine = (
     <header className="flex items-start justify-between gap-4">
       <div>
@@ -153,7 +170,19 @@ export default function CaseView({
           {c.reason_code_label && (
             <span className="text-[12px] text-muted">{c.reason_code_label}</span>
           )}
+          {txnDate && cbDate && (
+            <span className="text-[12px] text-muted">
+              · paid {txnDate} → disputed {cbDate}
+              {daysBetween !== null ? ` (${daysBetween} days)` : ""}
+            </span>
+          )}
         </div>
+        {c.issuer_narrative && (
+          <p className="mt-2 max-w-5xl border-l-2 border-line pl-3 text-[13px] leading-relaxed text-foreground/85">
+            <span className="font-semibold text-muted">Issuer claims: </span>
+            {c.issuer_narrative}
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button
@@ -459,11 +488,7 @@ export default function CaseView({
       </p>
       {showRule && (
         <div className="mt-2 max-w-5xl rounded-lg border border-line bg-panel p-4 text-[13px] leading-relaxed text-foreground/85">
-          <p>
-            <span className="font-semibold">Issuer narrative: </span>
-            {c.issuer_narrative}
-          </p>
-          <p className="mt-2">{w.reason_code_summary}</p>
+          {w.reason_code_summary}
         </div>
       )}
       <div className="mt-3">{decisionCard(w, rationaleRows)}</div>
