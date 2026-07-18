@@ -19,8 +19,10 @@ export default function UploadPanel({
   async function handleFiles(list: FileList | File[]) {
     const files = Array.from(list);
     if (!files.length) return;
-    const jsonFiles = files.filter((f) => f.name.toLowerCase().endsWith(".json"));
-    const docFiles = files.filter((f) => !f.name.toLowerCase().endsWith(".json"));
+    const ext = (f: File) => f.name.toLowerCase().split(".").pop() ?? "";
+    const zipFiles = files.filter((f) => ext(f) === "zip");
+    const jsonFiles = files.filter((f) => ext(f) === "json");
+    const docFiles = files.filter((f) => !["zip", "json"].includes(ext(f)));
 
     setBusy(true);
     setError(null);
@@ -28,9 +30,16 @@ export default function UploadPanel({
     try {
       let savedDocs = 0;
       let importedCases = 0;
+      let skipped = 0;
+      if (zipFiles.length) {
+        const r = await api.uploadArchive(zipFiles);
+        importedCases += r.imported.length;
+        savedDocs += r.saved.length;
+        skipped += r.skipped.length;
+      }
       if (docFiles.length) {
         const r = await api.uploadDocuments(docFiles);
-        savedDocs = r.saved.length;
+        savedDocs += r.saved.length;
       }
       for (const jf of jsonFiles) {
         const r = await api.uploadCases(jf);
@@ -39,6 +48,7 @@ export default function UploadPanel({
       const parts = [];
       if (importedCases) parts.push(`${importedCases} case${importedCases === 1 ? "" : "s"} imported`);
       if (savedDocs) parts.push(`${savedDocs} document${savedDocs === 1 ? "" : "s"} saved`);
+      if (skipped) parts.push(`${skipped} zip member${skipped === 1 ? "" : "s"} skipped`);
       if (!parts.length) parts.push("nothing recognised in that drop");
       setSummary(parts.join(" · "));
       if (importedCases) onDone();
@@ -86,15 +96,16 @@ export default function UploadPanel({
           {busy ? "Uploading…" : "Drop case files here, or click to browse"}
         </p>
         <p className="mt-1.5 text-[12.5px] text-muted">
-          Drop everything at once — the cases <span className="font-mono">.json</span> plus the
-          evidence documents it references (PDF / PNG / JPG / TXT). Uploads start immediately.
+          Drop everything at once — the cases <span className="font-mono">.json</span>, the
+          evidence documents it references (PDF / PNG / JPG / TXT), or a{" "}
+          <span className="font-mono">.zip</span> containing either. Uploads start immediately.
         </p>
         <input
           ref={inputRef}
           type="file"
           multiple
           className="hidden"
-          accept=".json,.pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md"
+          accept=".json,.pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md,.zip"
           onChange={(e) => e.target.files && handleFiles(e.target.files)}
         />
       </div>

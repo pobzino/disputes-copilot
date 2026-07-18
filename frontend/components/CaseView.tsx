@@ -221,7 +221,7 @@ export default function CaseView({
             type="file"
             multiple
             className="hidden"
-            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md"
+            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md,.zip"
             onChange={(e) => addEvidence(e.target.files)}
           />
           <button

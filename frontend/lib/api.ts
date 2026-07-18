@@ -44,6 +44,14 @@ export const api = {
     );
   },
 
+  uploadArchive: (files: File[]) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    return fetch("/api/upload/archive", { method: "POST", body: fd }).then((r) =>
+      j<{ imported: string[]; saved: string[]; skipped: string[] }>(r),
+    );
+  },
+
   importBundled: () =>
     fetch("/api/import-bundled", { method: "POST" }).then((r) => j<{ imported: string[] }>(r)),
 

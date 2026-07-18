@@ -4,8 +4,10 @@ Run:  uvicorn backend.main:app --port 8000 --reload
 """
 from __future__ import annotations
 
+import io
 import json
 import sys
+import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -102,6 +104,36 @@ async def upload_cases(file: UploadFile = File(...)):
     return {"imported": ids}
 
 
+DOC_EXTS = {".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".txt", ".md"}
+
+
+def _zip_members(content: bytes):
+    """Yield (basename, bytes) for useful zip members, skipping folders and junk."""
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(content))
+    except zipfile.BadZipFile:
+        raise HTTPException(400, "not a valid zip file")
+    for info in zf.infolist():
+        if info.is_dir() or "__MACOSX" in info.filename:
+            continue
+        name = Path(info.filename).name
+        if not name or name.startswith("."):
+            continue
+        yield name, zf.read(info)
+
+
+def _looks_like_cases(raw) -> list | None:
+    """Normalise a parsed JSON payload into a list of case dicts, or None."""
+    if isinstance(raw, dict) and "cases" in raw:
+        raw = raw["cases"]
+    if isinstance(raw, dict):
+        raw = [raw]
+    if isinstance(raw, list) and raw and all(isinstance(r, dict) for r in raw) \
+            and any(k in raw[0] for k in ("case_id", "id")):
+        return raw
+    return None
+
+
 @app.post("/api/upload/documents")
 async def upload_documents(files: list[UploadFile] = File(...)):
     """Accept evidence files (PDF/PNG/JPG/TXT); stored by filename for cases to reference."""
@@ -113,6 +145,32 @@ async def upload_documents(files: list[UploadFile] = File(...)):
     return {"saved": saved}
 
 
+@app.post("/api/upload/archive")
+async def upload_archive(files: list[UploadFile] = File(...)):
+    """Accept zip files: JSON members that look like cases are imported as cases,
+    supported document types are saved as evidence, everything else is skipped."""
+    imported, saved, skipped = [], [], []
+    for f in files:
+        content = await f.read()
+        for name, data in _zip_members(content):
+            ext = Path(name).suffix.lower()
+            if ext == ".json":
+                try:
+                    cases = _looks_like_cases(json.loads(data))
+                except json.JSONDecodeError:
+                    cases = None
+                if cases:
+                    imported += store.add_cases(cases)
+                else:
+                    skipped.append(name)
+            elif ext in DOC_EXTS:
+                store.save_document(name, data)
+                saved.append(name)
+            else:
+                skipped.append(name)
+    return {"imported": imported, "saved": saved, "skipped": skipped}
+
+
 @app.post("/api/cases/{case_id}/documents")
 async def add_case_documents(case_id: str, files: list[UploadFile] = File(...)):
     """Attach new evidence to an existing case (e.g. merchant responded to a
@@ -122,8 +180,15 @@ async def add_case_documents(case_id: str, files: list[UploadFile] = File(...)):
     saved = []
     for f in files:
         name = Path(f.filename or "unnamed").name
-        store.save_document(name, await f.read())
-        saved.append(name)
+        content = await f.read()
+        if name.lower().endswith(".zip"):
+            for member, data in _zip_members(content):
+                if Path(member).suffix.lower() in DOC_EXTS:
+                    store.save_document(member, data)
+                    saved.append(member)
+        else:
+            store.save_document(name, content)
+            saved.append(name)
     all_docs = store.add_documents(case_id, saved)
     return {"saved": saved, "documents": all_docs}
 
