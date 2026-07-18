@@ -28,6 +28,7 @@ export interface RequirementAssessment {
   confidence: Confidence;
   analyst_checks?: string[];
   merchant_request?: string | null;
+  claim_addressed?: string | null;
 }
 
 export interface Workup {

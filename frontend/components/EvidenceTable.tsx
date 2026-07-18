@@ -131,7 +131,14 @@ export default function EvidenceTable({
                     </button>
                   )}
                 </td>
-                <td className="px-2.5 py-2.5 font-medium">{r.requirement}</td>
+                <td className="px-2.5 py-2.5">
+                  <div className="font-medium">{r.requirement}</div>
+                  {r.claim_addressed && (
+                    <div className="mt-1 text-[11.5px] italic leading-snug text-muted">
+                      tests: “{r.claim_addressed}”
+                    </div>
+                  )}
+                </td>
                 <td className="px-2.5 py-2.5 font-mono text-[11.5px]">
                   {parts.length ? (
                     <>

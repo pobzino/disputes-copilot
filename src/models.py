@@ -157,6 +157,9 @@ class RequirementAssessment(BaseModel):
     merchant_request: Optional[str] = Field(
         default=None,
         description="If this requirement has a fixable gap: exactly what to ask the merchant for, forwardable verbatim.")
+    claim_addressed: Optional[str] = Field(
+        default=None,
+        description="The specific element of the issuer's claim this requirement tests, as a short quote or close paraphrase of the narrative (e.g. 'the package never arrived'). Null if the requirement does not bear on this claim (e.g. a not-applicable clause).")
 
 
 class Workup(BaseModel):
