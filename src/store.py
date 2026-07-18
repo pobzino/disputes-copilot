@@ -77,6 +77,23 @@ def add_documents(case_id: str, filenames: list[str]) -> list[str]:
     return []
 
 
+def remove_document_ref(case_id: str, filename: str) -> list[str] | None:
+    """Detach a document from a case (the file stays on disk — other cases may
+    reference the same name). Returns the case's remaining document list."""
+    raw = _load_raw()
+    for r in raw:
+        if ChargebackCase.from_raw(r).case_id != case_id:
+            continue
+        key = next((k for k in DOC_KEYS if k in r), None)
+        if key is None:
+            return []
+        r[key] = [d for d in r[key]
+                  if (d if isinstance(d, str) else d.get("filename")) != filename]
+        _save_raw(raw)
+        return [d if isinstance(d, str) else d.get("filename") for d in r[key]]
+    return None
+
+
 def save_document(filename: str, content: bytes) -> str:
     config.DOCUMENTS_DIR.mkdir(parents=True, exist_ok=True)
     path = config.DOCUMENTS_DIR / filename

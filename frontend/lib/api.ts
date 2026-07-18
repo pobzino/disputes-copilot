@@ -31,6 +31,11 @@ export const api = {
     );
   },
 
+  removeCaseDocument: (id: string, filename: string) =>
+    fetch(`/api/cases/${id}/documents/${encodeURIComponent(filename)}`, {
+      method: "DELETE",
+    }).then((r) => j<{ documents: string[] }>(r)),
+
   uploadCaseDocuments: (id: string, files: File[]) => {
     const fd = new FormData();
     files.forEach((f) => fd.append("files", f));

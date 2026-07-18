@@ -128,6 +128,15 @@ async def add_case_documents(case_id: str, files: list[UploadFile] = File(...)):
     return {"saved": saved, "documents": all_docs}
 
 
+@app.delete("/api/cases/{case_id}/documents/{filename}")
+def remove_case_document(case_id: str, filename: str):
+    """Detach a document from a case. Caller should re-analyse afterwards."""
+    docs = store.remove_document_ref(case_id, Path(filename).name)
+    if docs is None:
+        raise HTTPException(404, "case not found")
+    return {"documents": docs}
+
+
 @app.get("/api/documents/{filename}")
 def get_document(filename: str):
     """Serve an evidence file so the UI can show it next to its citation."""

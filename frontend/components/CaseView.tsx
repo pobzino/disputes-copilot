@@ -33,20 +33,54 @@ export default function CaseView({
   const [saved, setSaved] = useState(false);
   const [rowReviews, setRowReviews] = useState<Record<string, RowReview>>({});
   const [docTarget, setDocTarget] = useState<DocTarget | null>(null);
-  const [uploadingDocs, setUploadingDocs] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [docList, setDocList] = useState<string[]>([]);
+  const [docsChanged, setDocsChanged] = useState(false);
+  const [docsBusy, setDocsBusy] = useState(false);
   const evidenceInputRef = useRef<HTMLInputElement>(null);
+
+  function openManage() {
+    setDocList(c.evidence_documents.map((d) => d.filename));
+    setDocsChanged(false);
+    setManageOpen(true);
+  }
+
+  function closeManage() {
+    setManageOpen(false);
+    if (docsChanged) onAnalyse(true); // evidence changed — the workup is stale, re-run
+  }
 
   async function addEvidence(files: FileList | null) {
     if (!files?.length) return;
-    setUploadingDocs(true);
+    setDocsBusy(true);
     try {
-      await api.uploadCaseDocuments(c.case_id, Array.from(files));
-      onAnalyse(true); // new evidence invalidates the workup — re-run
+      const res = await api.uploadCaseDocuments(c.case_id, Array.from(files));
+      setDocList(res.documents);
+      setDocsChanged(true);
     } finally {
-      setUploadingDocs(false);
+      setDocsBusy(false);
       if (evidenceInputRef.current) evidenceInputRef.current.value = "";
     }
   }
+
+  async function removeEvidence(filename: string) {
+    setDocsBusy(true);
+    try {
+      const res = await api.removeCaseDocument(c.case_id, filename);
+      setDocList(res.documents);
+      setDocsChanged(true);
+    } finally {
+      setDocsBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!manageOpen) return;
+    const h = (e: KeyboardEvent) => e.key === "Escape" && closeManage();
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manageOpen, docsChanged]);
 
   useEffect(() => {
     setRationale(detail.decision?.analyst_rationale ?? w?.representment_rationale ?? "");
@@ -122,21 +156,13 @@ export default function CaseView({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <input
-          ref={evidenceInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md"
-          onChange={(e) => addEvidence(e.target.files)}
-        />
         <button
-          onClick={() => evidenceInputRef.current?.click()}
-          disabled={uploadingDocs || analysing}
-          title="Attach new merchant evidence to this case and re-analyse"
+          onClick={openManage}
+          disabled={analysing}
+          title="Add or remove merchant evidence on this case"
           className="rounded-md border border-line px-3 py-1 text-[12.5px] text-muted hover:text-foreground disabled:opacity-50"
         >
-          {uploadingDocs ? "Uploading…" : `+ Evidence (${c.evidence_documents.length})`}
+          Manage evidence ({c.evidence_documents.length})
         </button>
         <button
           onClick={() => onAnalyse(!!w)}
@@ -147,6 +173,72 @@ export default function CaseView({
         </button>
       </div>
     </header>
+  );
+
+  const manageModal = manageOpen && (
+    <>
+      <div className="fixed inset-0 z-40 bg-black/60" onClick={closeManage} />
+      <div className="fixed left-1/2 top-1/2 z-50 w-[560px] max-w-[90vw] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-line bg-background p-5 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[14px] font-semibold">Manage evidence · {c.case_id}</h2>
+          <button
+            onClick={closeManage}
+            className="rounded-md border border-line px-2 py-0.5 text-[11.5px] text-muted hover:text-foreground"
+          >
+            {docsChanged ? "Done — re-analyse ⎋" : "Close ⎋"}
+          </button>
+        </div>
+
+        <ul className="mt-3 space-y-1.5">
+          {docList.map((fn) => (
+            <li
+              key={fn}
+              className="flex items-center justify-between gap-3 rounded-md border border-line bg-panel px-3 py-2"
+            >
+              <span className="truncate font-mono text-[12px]" title={fn}>
+                {fn}
+              </span>
+              <button
+                onClick={() => removeEvidence(fn)}
+                disabled={docsBusy}
+                title="Detach this document from the case"
+                className="shrink-0 rounded-md border border-line px-2 py-0.5 text-[11.5px] text-muted hover:border-[var(--red)] hover:text-[var(--red)] disabled:opacity-40"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+          {docList.length === 0 && (
+            <li className="rounded-md border border-dashed border-line px-3 py-4 text-center text-[12.5px] text-muted">
+              No evidence attached — the workup will treat this as no submission.
+            </li>
+          )}
+        </ul>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <input
+            ref={evidenceInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.md"
+            onChange={(e) => addEvidence(e.target.files)}
+          />
+          <button
+            onClick={() => evidenceInputRef.current?.click()}
+            disabled={docsBusy}
+            className="rounded-md border border-line px-3 py-1.5 text-[12.5px] text-muted hover:text-foreground disabled:opacity-40"
+          >
+            {docsBusy ? "Working…" : "+ Add files"}
+          </button>
+          {docsChanged && (
+            <span className="text-[11.5px]" style={{ color: "var(--amber)" }}>
+              Evidence changed — re-analysis runs when you close
+            </span>
+          )}
+        </div>
+      </div>
+    </>
   );
 
   const verdictBanner = (ww: Workup) => {
@@ -342,6 +434,7 @@ export default function CaseView({
             <p>Not analysed yet.</p>
           )}
         </div>
+        {manageModal}
       </div>
     );
   }
@@ -433,6 +526,7 @@ export default function CaseView({
       <p className="mt-5 text-[11.5px] text-muted">
         Generated {detail.result?.generated_at} · {detail.result?.model}
       </p>
+      {manageModal}
     </div>
   );
 }
