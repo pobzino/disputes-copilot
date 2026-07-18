@@ -9,7 +9,7 @@ A tool that does the 18-minute grind of a chargeback case so the analyst can mak
 Two processes: a FastAPI backend (runs the LLM pipeline) and a Next.js frontend.
 
 ```bash
-git clone <repo> && cd checkout-disputes
+git clone https://github.com/pobzino/disputes-copilot.git && cd disputes-copilot
 
 # Backend
 python -m venv .venv && source .venv/bin/activate
