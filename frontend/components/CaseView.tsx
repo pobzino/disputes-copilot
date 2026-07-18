@@ -488,6 +488,11 @@ export default function CaseView({
       {crossCutting(w) && <div className="mt-2">{crossCutting(w)}</div>}
       <div className="mt-3">{decisionCard(w, rationaleRows)}</div>
       <div className="mt-4">
+        <p className="mb-1.5 text-[11px] uppercase tracking-wider text-muted">
+          Defence checklist — what {(c.scheme || "the scheme")} requires us to prove to represent
+          (contest) this chargeback. <span className="normal-case">Satisfied = the merchant&apos;s
+          evidence proves that element of the defence.</span>
+        </p>
         <EvidenceTable
           rows={w.evidence_assessment}
           reviews={rowReviews}
