@@ -27,11 +27,11 @@ Open **http://localhost:3000**. The queue starts blank — either drop a cases J
 
 One screen per case:
 
-1. **Header** — merchant, case ID, amount, scheme + reason code. `+ Evidence` attaches new merchant documents to the case (e.g. after a request_more_evidence round) and re-analyses automatically.
-2. **AI recommendation banner** — represent / accept_liability / request_more_evidence with a confidence meter, one-line justification, and a toggle showing the issuer's allegation and what the scheme requires (the reason-code summary).
+1. **Header** — merchant, case ID, amount, scheme + reason code, transaction→chargeback timeline. **Manage evidence** adds or removes merchant documents on the case (e.g. after a request_more_evidence round) — one re-analysis runs when you close it; zips are unpacked automatically.
+2. **Case brief** — the issuer's claim side by side with the AI recommendation (represent / accept_liability / request_more_evidence), confidence meter, justification, and a toggle for what the scheme requires (the reason-code summary).
 3. **Decision card** — the analyst's unit: action buttons (deliberately *unselected* — the AI's suggestion is only tagged `·AI`; save is disabled until the analyst actively chooses), an override-reason prompt when deviating, and the rationale. The rationale renders as a read-only **"AI draft — not filed"** until the analyst clicks *Edit before filing* or *Write my own* — nothing filed is silently AI-authored.
-4. **Evidence table** — one row per compelling-evidence requirement:
-   `status | requirement | evidence file + page | reasoning + verbatim quote | ⚠ verify (manual checks) | → ask merchant (forwardable request) | confidence | analyst ✓/✗ + comment`
+4. **Evidence table** — the scheme's defence checklist, one row per compelling-evidence requirement:
+   `status | requirement (+ the claim element it tests) | evidence file + page | reasoning + verbatim quote | ⚠ verify (manual checks) | → ask merchant (forwardable request) | confidence | analyst ✓/✗ + comment`
    - **Click any evidence file** → the PDF opens at the cited page with the quoted text **highlighted** (pdf.js text-layer matching against the AI's verbatim quotes — it only marks text that is actually there).
    - **Click any status pill** → a modal to correct the status, with a **required reason** before confirming. Corrected rows show `ANALYST · AI said ~~satisfied~~`.
 
@@ -74,7 +74,7 @@ reason_codes.md ─► rules section for this reason code (deterministic lookup,
 
 **The analyst owns the decision.** No pre-ticked defaults: the action starts unselected, the rationale starts as a labelled AI draft, overrides require a stated reason. This isn't just UX hygiene — it makes the logged agreement rate a real measurement instead of default-acceptance bias.
 
-**Confidence does something.** Low-confidence rows are flagged for manual verification, per-requirement checks land in a dedicated Verify column, and dispositive metadata signals (e.g. successful 3DS on a fraud code) are surfaced as cross-cutting flags.
+**Confidence does something.** Low-confidence rows are flagged for manual verification, per-requirement checks land in a dedicated Verify column, and dispositive metadata signals (e.g. successful 3DS on a fraud code) are surfaced in the relevant requirement's checks.
 
 ### The feedback loop (`output/feedback.jsonl`)
 
