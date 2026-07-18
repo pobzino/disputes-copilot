@@ -170,18 +170,12 @@ export default function CaseView({
             <>
               <span className="text-muted">·</span>
               <span className="text-[12.5px] text-muted">
-                paid {txnDate} → disputed {cbDate}
+                {txnDate} → {cbDate}
                 {daysBetween !== null ? ` (${daysBetween}d)` : ""}
               </span>
             </>
           )}
         </div>
-        {c.issuer_narrative && (
-          <p className="mt-1.5 max-w-5xl border-l-2 border-line pl-3 text-[13px] leading-relaxed text-foreground/85">
-            <span className="font-semibold text-muted">Issuer claims: </span>
-            {c.issuer_narrative}
-          </p>
-        )}
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <button
@@ -269,49 +263,62 @@ export default function CaseView({
     </>
   );
 
-  const verdictBanner = (ww: Workup) => {
+  // Claim on the left, AI recommendation on the right — the case brief as one card
+  const caseBrief = (ww: Workup) => {
     const meta = ACTION_META[ww.recommended_action];
     const conf = ww.overall_confidence;
     const level = { high: 3, medium: 2, low: 1 }[conf];
+    const justification = ww.action_justification.replace(
+      /^(represent|accept liability|request (?:more |additional )?evidence)[.:,—-]?\s*/i,
+      "",
+    );
     return (
-      <div
-        className="flex items-center gap-5 rounded-lg border border-line px-4 py-2.5"
-        style={{
-          borderLeft: `3px solid ${meta.color}`,
-          background: `color-mix(in srgb, ${meta.color} 5%, var(--panel))`,
-        }}
-      >
-        <div>
+      <div className="mt-3 overflow-hidden rounded-lg border border-line md:grid md:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="bg-panel p-4">
           <div className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted">
-            AI recommendation
+            Issuer claims
+          </div>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-foreground/85">
+            {c.issuer_narrative || "No narrative provided."}
+          </p>
+          <button
+            onClick={() => setShowRule(!showRule)}
+            className="mt-2 text-[11.5px] text-muted underline decoration-line underline-offset-2 hover:text-foreground"
+          >
+            {showRule ? "hide scheme rule ▴" : "what the scheme requires ▾"}
+          </button>
+        </div>
+        <div
+          className="border-t border-line p-4 md:border-l md:border-t-0"
+          style={{ background: `color-mix(in srgb, ${meta.color} 5%, var(--panel))` }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted">
+              AI recommendation
+            </div>
+            <div className="flex items-center gap-1">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="h-[4px] w-4 rounded-full"
+                  style={{ background: i < level ? CONF_COLOR[conf] : "var(--border)" }}
+                />
+              ))}
+              <span
+                className="ml-1 text-[10.5px] font-semibold capitalize"
+                style={{ color: CONF_COLOR[conf] }}
+              >
+                {conf}
+              </span>
+            </div>
           </div>
           <div
-            className="text-[21px] font-bold leading-tight tracking-tight"
+            className="mt-0.5 text-[20px] font-bold leading-tight tracking-tight"
             style={{ color: meta.color }}
           >
             {meta.label}
           </div>
-        </div>
-        <div className="h-8 w-px bg-line" />
-        <div>
-          <div className="text-[9.5px] font-semibold uppercase tracking-[0.14em] text-muted">
-            Confidence
-          </div>
-          <div className="mt-1 flex items-center gap-1">
-            {[0, 1, 2].map((i) => (
-              <span
-                key={i}
-                className="h-[5px] w-5 rounded-full"
-                style={{ background: i < level ? CONF_COLOR[conf] : "var(--border)" }}
-              />
-            ))}
-            <span
-              className="ml-1.5 text-[11.5px] font-semibold capitalize"
-              style={{ color: CONF_COLOR[conf] }}
-            >
-              {conf}
-            </span>
-          </div>
+          <p className="mt-1 text-[12px] leading-relaxed text-muted">{justification}</p>
         </div>
       </div>
     );
@@ -472,24 +479,13 @@ export default function CaseView({
   return (
     <div className="px-6 py-4">
       {metaLine}
-      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
-        {verdictBanner(w)}
-        <div className="min-w-[300px] flex-1">{crossCutting(w)}</div>
-      </div>
-      <p className="mt-2 max-w-5xl text-[13px] leading-relaxed text-muted">
-        {w.action_justification}{" "}
-        <button
-          onClick={() => setShowRule(!showRule)}
-          className="text-foreground/70 underline decoration-line underline-offset-2 hover:text-foreground"
-        >
-          {showRule ? "hide rule ▴" : "allegation & scheme rule ▾"}
-        </button>
-      </p>
+      {caseBrief(w)}
       {showRule && (
-        <div className="mt-2 max-w-5xl rounded-lg border border-line bg-panel p-4 text-[13px] leading-relaxed text-foreground/85">
+        <div className="mt-2 rounded-lg border border-line bg-panel p-4 text-[13px] leading-relaxed text-foreground/85">
           {w.reason_code_summary}
         </div>
       )}
+      {crossCutting(w) && <div className="mt-2">{crossCutting(w)}</div>}
       <div className="mt-3">{decisionCard(w, rationaleRows)}</div>
       <div className="mt-4">
         <EvidenceTable
